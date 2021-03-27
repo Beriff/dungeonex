@@ -1,12 +1,13 @@
 """Game module containing entity, object and game classes."""
 
 from copy import deepcopy
+from typing import Callable
 
 game_instances = {}
 
 class GameObject:
     """Basic memeber of Game.grid"""
-    def __init__(self, symbol: str, collidable: bool, damaging: bool):
+    def __init__(self, symbol: str, collidable: bool, damaging: bool, damage: int = 0):
         self.symbol = symbol
         self.collidable = collidable
         self.damaging = damaging
@@ -20,12 +21,13 @@ base_wall = GameObject(':green_square:', True, False)
 
 class Entity:
     """Basic member of Game.entities"""
-    def __init__(self, symbol: str, health: int, position_x: int, position_y: int):
+    def __init__(self, symbol: str, health: int, position_x: int, position_y: int, brain: Callable[[int, int], None]):
         self.symbol = symbol
         self.health = health
         self.position_x = position_x
         self.position_y = position_y
         self.focused = False
+        self.brain = brain
 
     def apply_damage(self, damage: int) -> bool:
         """Returns true if damage applied is higher than entity's HP"""
@@ -47,6 +49,10 @@ class Entity:
                     if isinstance(grid[self.position_y + dy][self.position_x + dx], GameObject) and not grid[self.position_y + dy][self.position_x + dx].collidable:
                         self.position_x += dx
                         self.position_y += dy
+
+                        # Trivial checks:
+                        if grid[self.position_y + dy][self.position_x + dx].damaging:
+                            self.apply_damage(grid[self.position_y + dy][self.position_x + dx].damage)
 
                         return True
             if not strict_mode:
@@ -113,9 +119,23 @@ class Game:
                 return entity.move_entity(dx, dy, self.grid)
 
     def _generate_basic_grid(self) -> None:
+        """Generates closed area using base_wall and base_floor"""
         for x in range(0, len(self.grid[0])):
             self.grid[0][x] = base_wall
             self.grid[len(self.grid) - 1][x] = base_wall
         for y in range(0, len(self.grid)):
             self.grid[y][0] = base_wall
             self.grid[y][len(self.grid[0]) - 1] = base_wall
+
+    def get_focused_entity(self) -> Player:
+        """Returns an active Player object"""
+        for entity in self.entities:
+            if entity.focused:
+                return entity
+
+    def update_entities(self) -> None:
+        """Calls brain() function of every entity except for player"""
+        plr = self.get_focused_entity()
+        for entity in self.entities:
+            if not entity.focused:
+                entity.brain(plr.position_x, plr.position_y)
