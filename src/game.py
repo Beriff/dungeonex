@@ -2,7 +2,9 @@
 
 from copy import deepcopy
 
-class Object:
+game_instances = {}
+
+class GameObject:
     """Basic memeber of Game.grid"""
     def __init__(self, symbol: str, collidable: bool, damaging: bool):
         self.symbol = symbol
@@ -13,8 +15,8 @@ class Object:
         """Adds object to Game.grid"""
         grid[pos_y][pos_x] = self
 
-base_floor = Object(':black_large_square:', False, False)
-base_wall = Object(':green_square:', True, False)
+base_floor = GameObject(':black_large_square:', False, False)
+base_wall = GameObject(':green_square:', True, False)
 
 class Entity:
     """Basic member of Game.entities"""
@@ -42,7 +44,7 @@ class Entity:
             if self.position_x + dx >= 0 and self.position_x + dx <= size_x:
                 if self.position_y + dy >= 0 and self.position_y + dy <= size_y:
                     #Initial grid object conditions: if grid member is object and is not collidable
-                    if grid[self.position_y + dy][self.position_x + dx] is Object and not grid[self.position_y + dy][self.position_x + dx].collidable:
+                    if isinstance(grid[self.position_y + dy][self.position_x + dx], GameObject) and not grid[self.position_y + dy][self.position_x + dx].collidable:
                         self.position_x += dx
                         self.position_y += dy
 
@@ -63,6 +65,7 @@ class Entity:
         return False
 
 class Player(Entity):
+    """Focused entity of the Game.grid"""
     def __init__(self, symbol: str, health: int, position_x: int, position_y: int):
         self.symbol = symbol
         self.health = health
@@ -104,7 +107,7 @@ class Game:
 
         return result
 
-    def move_focused_entity(self, dx, dy) -> bool:
+    def move_focused_entity(self, dx: int, dy: int) -> bool:
         for entity in self.entities:
             if entity.focused:
                 return entity.move_entity(dx, dy, self.grid)
