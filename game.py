@@ -1,18 +1,20 @@
 """Game module containing entity, object and game classes."""
 
+from copy import deepcopy
+
 class Object:
     """Basic memeber of Game.grid"""
-    def __init__(self, symbol: str, collidable: bool, damaging: bool, position_x: int, position_y: int):
+    def __init__(self, symbol: str, collidable: bool, damaging: bool):
         self.symbol = symbol
         self.collidable = collidable
         self.damaging = damaging
 
-        self.position_x = position_x
-        self.position_y = position_y
-
-    def add_to_grid(self, grid: list) -> None:
+    def add_to_grid(self, grid: list, pos_x: int, pos_y: int) -> None:
         """Adds object to Game.grid"""
-        grid[self.position_x][self.position_y] = self
+        grid[pos_y][pos_x] = self
+
+base_floor = Object(':black_large_square:', False, False)
+base_wall = Object(':green_square:', True, False)
 
 class Entity:
     """Basic member of Game.entities"""
@@ -21,6 +23,7 @@ class Entity:
         self.health = health
         self.position_x = position_x
         self.position_y = position_y
+        self.focused = False
 
     def apply_damage(self, damage: int) -> bool:
         """Returns true if damage applied is higher than entity's HP"""
@@ -59,14 +62,57 @@ class Entity:
             return False
         return False
 
+class Player(Entity):
+    def __init__(self, symbol: str, health: int, position_x: int, position_y: int):
+        self.symbol = symbol
+        self.health = health
+        self.position_x = position_x
+        self.position_y = position_y
+        self.focused = True
+
+rat_hero = Player(':rat:', 100, 5, 5)
+
 class Game:
     """Main object of the game containing active grid and entities."""
     def __init__(self, grid_size_x: int, grid_size_y: int):
         self.grid = []
         self.entities = []
 
-        for y in range(grid_size_y):
+        for y in range(grid_size_y + 1):
             row = []
-            for x in range(grid_size_x):
-                row.append(None)
+            for x in range(grid_size_x + 1):
+                row.append(base_floor)
             self.grid.append(row)
+
+    def get_layered_grid(self) -> list:
+        """Returns a list with objects and entities in it."""
+        result = deepcopy(self.grid)
+
+        for entity in self.entities:
+            result[entity.position_y][entity.position_x] = entity
+
+        return result
+
+    def get_printable(self) -> str:
+        """Returns a printable string containing entities and grid"""
+        result = ""
+
+        for k in self.get_layered_grid():
+            for i in k:
+                result += i.symbol
+            result += "\n"
+
+        return result
+
+    def move_focused_entity(self, dx, dy) -> bool:
+        for entity in self.entities:
+            if entity.focused:
+                return entity.move_entity(dx, dy, self.grid)
+
+    def _generate_basic_grid(self) -> None:
+        for x in range(0, len(self.grid[0])):
+            self.grid[0][x] = base_wall
+            self.grid[len(self.grid) - 1][x] = base_wall
+        for y in range(0, len(self.grid)):
+            self.grid[y][0] = base_wall
+            self.grid[y][len(self.grid[0]) - 1] = base_wall
