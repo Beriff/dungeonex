@@ -27,4 +27,4 @@ async def moveup(ctx):
         print('passed')
     await ctx.send(game.game_instances[ctx.author].get_printable())
 
-client.run('ODI1MjAyNTgxNjI1NTAzNzU0.YF6fyg.JVEDvweeB_mu51wx9HTaQumMeFU')
+client.run('TOKEN')
