@@ -3,6 +3,7 @@
 from copy import deepcopy
 from random import choice, randint
 from math import ceil
+import namegen as gen
 
 game_instances = {}
 rarities = {1: [0.5, ":brown_circle:"], 2: [1, ":green_circle:"], 3: [1.5, ":blue_circle"], 4: [2, ":purple_circle"], 5: [2.5, ":red_circle:"], 6: [3, ":white_circle:"]}
@@ -192,6 +193,7 @@ class Game:
         self.grid = []
         self.entities = []
         self.focused_window = 0 #0 - game; 1 - inventory
+        self.dungeon_name = gen.gen_word()
 
         for y in range(grid_size_y + 1):
             row = []
