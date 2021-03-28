@@ -1,4 +1,8 @@
 # dungeonex
+
+![Lines of code](https://img.shields.io/tokei/lines/github/Beriff/dungeonex)
+![GitHub commit activity](https://img.shields.io/github/commit-activity/w/Beriff/dungeonex)
+
 ![alt text](https://cdn.discordapp.com/attachments/574566918778781706/825576793985253426/logo.png "DungeonEx")
 DungeonEx is a discord bot that adds turn-based RPG to your server. Each game is personalized: one person controls his own game, nobody can interfere him. Each new game is unique:
 every dungeon, every item, every monster, every item -- everything is randomly generated, and that guarantees a totally new and fresh experience every time.
