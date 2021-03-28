@@ -1,9 +1,11 @@
 """Game module containing entity, object and game classes."""
 
 from copy import deepcopy
-from random import choice
+from random import choice, randint
+from math import ceil
 
 game_instances = {}
+rarities = {1: [0.5, ":brown_circle:"], 2: [1, ":green_circle:"], 3: [1.5, ":blue_circle"], 4: [2, ":purple_circle"], 5: [2.5, ":red_circle:"], 6: [3, ":white_circle:"]}
 
 class GameObject:
     """Basic memeber of Game.grid"""
@@ -18,6 +20,31 @@ class GameObject:
 
 base_floor = GameObject(':black_large_square:', False, False)
 base_wall = GameObject(':green_square:', True, False)
+
+class Item:
+    """Basic item that any entity can hold."""
+    def __init__(self, level: int, name: str, upgradable: bool = False):
+        self.level = level
+        self.upgradable = upgradable
+        self.name = name
+
+        self.rarity = rarities[choice(list(rarities.keys()))]
+
+    def define_worth(self) -> int:
+        """Returns item's worth"""
+        return ceil(self.level**3 + 2 * self.level**2)
+
+class Weapon(Item):
+    def __init__(self, level: int, name: str, upgradable: bool = True):
+        self.level = level
+        self.name = name
+        self.upgradable = upgradable
+
+        self.rarity = rarities[choice(list(rarities.keys()))]
+    
+    def get_damage(self) -> int:
+        """Get damage value of the weapon"""
+        return round(self.level**2)*rarities[self.rarity][0]
 
 class Entity:
     """Basic member of Game.entities"""
@@ -39,6 +66,10 @@ class Entity:
             base_damage -= round(base_damage/2)
             return base_damage
         return base_damage
+
+    def on_defeat_exp(self) -> int:
+        """Returns amount of exp to give to player when defeated"""
+        return ceil(randint(round((self.level**2)/2), self.level**2))
 
     def apply_damage(self, damage: int) -> bool:
         """Returns true if damage applied is higher than entity's HP"""
@@ -92,8 +123,8 @@ class Entity:
         elif self.position_y < node_y - 1:
             self.move_entity(0, 1)
         else:
-            plr.apply_damage(self.get_damage())
-
+            if plr.apply_damage(self.get_damage()):
+                plr.health = 0
 
 class Player(Entity):
     """Focused entity of the Game.grid"""
@@ -107,7 +138,36 @@ class Player(Entity):
         self.exp = 0
         self.log = 'Player appeared!'
 
+        self.inv = []
+        self.equipped_weapon = None
+        self.equipped_armor = None
+
+    def equip_weapon(self, weapon: Weapon) -> bool:
+        """Returns true if equipped successfully"""
+        if Weapon.level - 1 < self.level:
+            self.equipped_weapon = weapon
+            return True
+        return False
+
+    def get_inv_printable(self) -> str:
+        """Returns prinatable inventory contents string"""
+        if not len(self.inv):
+            excluded = {}
+            final_str = ""
+            for item in self.inv:
+                if item.name in excluded:
+                    excluded[item.name] += 1
+                else:
+                    excluded[item.name] = 1
+            for i in excluded.keys():
+                final_str += f"{i} x{excluded[i]}\n"
+            print(final_str)
+            return final_str
+        else:
+            return "Oh! Its empty!"
+
     def add_exp(self, amount: int) -> None:
+        """Adds exp to the player or/and increments current level"""
         cap = self.level**3
         if amount + self.exp < cap:
             self.exp += amount
@@ -121,14 +181,17 @@ class Player(Entity):
             self.log = 'Level up!'
             self.add_exp(amount - cap)
 
+
 rat_hero = Player(':rat:', 100, 5, 5)
 enemy = Entity(':monkey:', 5, 2, 2)
+enemy.level = 2
 
 class Game:
     """Main object of the game containing active grid and entities."""
     def __init__(self, grid_size_x: int, grid_size_y: int):
         self.grid = []
         self.entities = []
+        self.focused_window = 0 #0 - game; 1 - inventory
 
         for y in range(grid_size_y + 1):
             row = []
@@ -147,14 +210,17 @@ class Game:
 
     def get_printable(self) -> str:
         """Returns a printable string containing entities and grid"""
-        result = ""
+        if not self.focused_window:
+            result = ""
 
-        for k in self.get_layered_grid():
-            for i in k:
-                result += i.symbol
-            result += "\n"
+            for k in self.get_layered_grid():
+                for i in k:
+                    result += i.symbol
+                result += "\n"
 
-        return result
+            return result
+        elif self.focused_window == 1:
+            return self.get_focused_entity().get_inv_printable()
 
     def test_entity_position(self, desired_x: int, desired_y: int) -> bool:
         """Returns true if some entity of Game.entities occupies the given coordinates"""
@@ -180,8 +246,11 @@ class Game:
                         return True
                     return False    
                 #If player tries to move into entity's cell -> attack it
-                if self.entities[self.get_entity_by_coords(entity.position_x + dx, entity.position_y + dy)].apply_damage(entity.get_damage()):
-                    #if true then ^^^ entity is dead. Let's remove it
+                possible_damage = entity.get_damage()
+                entity.log = f'Hit! -{possible_damage}HP'
+                if self.entities[self.get_entity_by_coords(entity.position_x + dx, entity.position_y + dy)].apply_damage(possible_damage):
+                    #if true then ^^^ entity is dead. Let's remove it and add exp to player
+                    entity.add_exp(self.entities[self.get_entity_by_coords(entity.position_x + dx, entity.position_y + dy)].on_defeat_exp())
                     self.entities.pop(self.get_entity_by_coords(entity.position_x + dx, entity.position_y + dy))
                 self.update_entities()
                 return True
