@@ -10,7 +10,7 @@ control_messages = {}
 enemies = {"monkey": game.enemy}
 
 def get_game_embed(user) -> discord.Embed:
-    embed = discord.Embed(title='Dungeon Name', description=game.game_instances[user.name].get_printable(), color=0xffffff)
+    embed = discord.Embed(title=game.game_instances[user.name].dungeon_name + ' dungeon', description=game.game_instances[user.name].get_printable(), color=0xffffff)
     embed.add_field(name='Last Action', value=game.game_instances[user.name].get_focused_entity().log, inline=True)
     embed.add_field(name='HP', value=game.game_instances[user.name].get_focused_entity().health, inline=True)
     embed.add_field(name='Level', value=game.game_instances[user.name].get_focused_entity().level, inline=True)
