@@ -1,7 +1,7 @@
 """Game module containing entity, object and game classes."""
 
 from copy import deepcopy
-from typing import Callable
+from random import choice
 
 game_instances = {}
 
@@ -21,13 +21,24 @@ base_wall = GameObject(':green_square:', True, False)
 
 class Entity:
     """Basic member of Game.entities"""
-    def __init__(self, symbol: str, health: int, position_x: int, position_y: int, brain: Callable[[int, int], None]):
+    def __init__(self, symbol: str, health: int, position_x: int, position_y: int):
         self.symbol = symbol
         self.health = health
         self.position_x = position_x
         self.position_y = position_y
         self.focused = False
-        self.brain = brain
+        self.level = 0
+
+    def get_damage(self) -> int:
+        """Returns randomized damage depending on Entity.level"""
+        base_damage = self.level**3
+        if choice([0,1]):
+            if choice([0,1]):
+                base_damage += int(base_damage/3)
+                return base_damage
+            base_damage -= int(base_damage/2)
+            return base_damage
+        return base_damage
 
     def apply_damage(self, damage: int) -> bool:
         """Returns true if damage applied is higher than entity's HP"""
@@ -70,6 +81,19 @@ class Entity:
             return False
         return False
 
+    def approach(self, node_x: int, node_y: int, plr) -> None:
+        """Simple approaching and hitting algorithm"""
+        if self.position_x > node_x + 1:
+            self.move_entity(-1, 0)
+        elif self.position_y > node_y + 1:
+            self.move_entity(0, -1)
+        elif self.position_x < node_x - 1:
+            self.move_entity(1, 0)
+        elif self.position_y < node_y - 1:
+            self.move_entity(0, 1)
+        else:
+            plr.apply_damage(self.get_damage())
+
 class Player(Entity):
     """Focused entity of the Game.grid"""
     def __init__(self, symbol: str, health: int, position_x: int, position_y: int):
@@ -78,8 +102,10 @@ class Player(Entity):
         self.position_x = position_x
         self.position_y = position_y
         self.focused = True
+        self.level = 1
 
 rat_hero = Player(':rat:', 100, 5, 5)
+enemy = Entity(':monkey:', 5, 2, 2)
 
 class Game:
     """Main object of the game containing active grid and entities."""
@@ -113,10 +139,36 @@ class Game:
 
         return result
 
+    def test_entity_position(self, desired_x: int, desired_y: int) -> bool:
+        """Returns true if some entity of Game.entities occupies the given coordinates"""
+        for entity in self.entities:
+            if not entity.focused:
+                if entity.position_x == desired_x and entity.position_y == desired_y:
+                    return True
+        return False
+
+    def get_entity_by_coords(self, insp_x: int, insp_y: int) -> int:
+        """Returns *index* of the entity in Game.entities"""
+        for i in range(0, len(self.entities)):
+            if self.entities[i].position_x == insp_x and self.entities[i].position_y == insp_y:
+                return i
+
     def move_focused_entity(self, dx: int, dy: int) -> bool:
+        """Moves player. Returns false if player collides with a wall. Otherwise, returns true."""
         for entity in self.entities:
             if entity.focused:
-                return entity.move_entity(dx, dy, self.grid)
+                if not self.test_entity_position(entity.position_x + dx, entity.position_y + dy):
+                    if entity.move_entity(dx, dy, self.grid):
+                        self.update_entities()
+                        return True
+                    return False    
+                #If player tries to move into entity's cell -> attack it
+                if self.entities[self.get_entity_by_coords(entity.position_x + dx, entity.position_y + dy)].apply_damage(entity.get_damage()):
+                    #if true then ^^^ entity is dead. Let's remove it
+                    self.entities.pop(self.get_entity_by_coords(entity.position_x + dx, entity.position_y + dy))
+                return True
+
+
 
     def _generate_basic_grid(self) -> None:
         """Generates closed area using base_wall and base_floor"""
@@ -134,8 +186,8 @@ class Game:
                 return entity
 
     def update_entities(self) -> None:
-        """Calls brain() function of every entity except for player"""
+        """Calls approach() function of every entity except for player"""
         plr = self.get_focused_entity()
         for entity in self.entities:
             if not entity.focused:
-                entity.brain(plr.position_x, plr.position_y)
+                entity.approach(plr.position_x, plr.position_y, plr)
