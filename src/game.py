@@ -92,7 +92,6 @@ class Entity:
         elif self.position_y < node_y - 1:
             self.move_entity(0, 1)
         else:
-            print(f'gonna do {self.get_damage()}')
             plr.apply_damage(self.get_damage())
 
 
