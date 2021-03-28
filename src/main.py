@@ -6,6 +6,15 @@ client = commands.Bot(command_prefix = '.')
 
 control_messages = {}
 
+def get_game_embed(user) -> discord.Embed:
+    embed = discord.Embed(title='Dungeon Name', description=game.game_instances[user.name].get_printable(), color=0xffffff)
+    embed.add_field(name='Last Action', value=game.game_instances[user.name].get_focused_entity().log, inline=True)
+    embed.add_field(name='HP', value=game.game_instances[user.name].get_focused_entity().health, inline=True)
+    embed.add_field(name='Level', value=game.game_instances[user.name].get_focused_entity().level, inline=True)
+    embed.add_field(name='Exp', value=f'{game.game_instances[user.name].get_focused_entity().exp}/{game.game_instances[user.name].get_focused_entity().level**3}')    
+
+    return embed
+
 @client.event
 async def on_ready():
     print('[!] Dungeons are ready')
@@ -21,7 +30,9 @@ async def newgame(ctx):
 
     print(f"[>] {ctx.author} issued .newgame")
     print(f"[>] {len(game.game_instances)} Game Instances are active")
-    message = await ctx.send(game.game_instances[ctx.author.name].get_printable())
+
+    message = await ctx.send(embed=get_game_embed(ctx.author))
+
     control_messages[ctx.author.name] = message
     await control_messages[ctx.author.name].add_reaction('⬆')
     await control_messages[ctx.author.name].add_reaction('⬇')
@@ -56,21 +67,21 @@ async def on_reaction_add(reaction, user):
 async def moveup(ctx, user):
     active = game.game_instances[user.name]
     if active.move_focused_entity(0, -1):
-        await ctx.message.edit(content=game.game_instances[user.name].get_printable())
+        await ctx.message.edit(embed=get_game_embed(user))
 
 async def movedown(ctx, user):
     active = game.game_instances[user.name]
     if active.move_focused_entity(0, 1):
-        await ctx.message.edit(content=game.game_instances[user.name].get_printable())
+        await ctx.message.edit(embed=get_game_embed(user))
 
 async def moveleft(ctx, user):
     active = game.game_instances[user.name]
     if active.move_focused_entity(-1, 0):
-        await ctx.message.edit(content=game.game_instances[user.name].get_printable())
+        await ctx.message.edit(embed=get_game_embed(user))
 
 async def moveright(ctx, user):
     active = game.game_instances[user.name]
     if active.move_focused_entity(1, 0):
-        await ctx.message.edit(content=game.game_instances[user.name].get_printable())
+        await ctx.message.edit(embed=get_game_embed(user))
 
 client.run('TOKEN')
