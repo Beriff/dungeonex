@@ -12,9 +12,10 @@ async def on_ready():
 
 @client.command()
 async def newgame(ctx):
-    newgame = game.Game(7, 6)
+    newgame = game.Game(9, 8)
     newgame._generate_basic_grid()
     newgame.entities.append(game.rat_hero)
+    newgame.entities.append(game.enemy)
 
     game.game_instances[ctx.author.name] = newgame
 
