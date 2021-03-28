@@ -27,16 +27,16 @@ class Entity:
         self.position_x = position_x
         self.position_y = position_y
         self.focused = False
-        self.level = 0
+        self.level = 1
 
     def get_damage(self) -> int:
         """Returns randomized damage depending on Entity.level"""
         base_damage = self.level**3
         if choice([0,1]):
             if choice([0,1]):
-                base_damage += int(base_damage/3)
+                base_damage += round(base_damage/3)
                 return base_damage
-            base_damage -= int(base_damage/2)
+            base_damage -= round(base_damage/2)
             return base_damage
         return base_damage
 
@@ -92,7 +92,9 @@ class Entity:
         elif self.position_y < node_y - 1:
             self.move_entity(0, 1)
         else:
+            print(f'gonna do {self.get_damage()}')
             plr.apply_damage(self.get_damage())
+
 
 class Player(Entity):
     """Focused entity of the Game.grid"""
@@ -103,6 +105,22 @@ class Player(Entity):
         self.position_y = position_y
         self.focused = True
         self.level = 1
+        self.exp = 0
+        self.log = 'Player appeared!'
+
+    def add_exp(self, amount: int) -> None:
+        cap = self.level**3
+        if amount + self.exp < cap:
+            self.exp += amount
+            self.log = f'+{self.exp} exp!'
+        elif amount + self.exp == cap:
+            self.level += 1
+            self.exp = 0
+            self.log = 'Level up!'
+        elif amount + self.exp > cap:
+            self.level += 1
+            self.log = 'Level up!'
+            self.add_exp(amount - cap)
 
 rat_hero = Player(':rat:', 100, 5, 5)
 enemy = Entity(':monkey:', 5, 2, 2)
@@ -166,6 +184,7 @@ class Game:
                 if self.entities[self.get_entity_by_coords(entity.position_x + dx, entity.position_y + dy)].apply_damage(entity.get_damage()):
                     #if true then ^^^ entity is dead. Let's remove it
                     self.entities.pop(self.get_entity_by_coords(entity.position_x + dx, entity.position_y + dy))
+                self.update_entities()
                 return True
 
 
