@@ -15,6 +15,16 @@ def get_game_embed(user) -> discord.Embed:
 
     return embed
 
+async def end_game(ctx, user) -> None:
+    await control_messages[user.name].delete()
+    del(control_messages[user.name])
+    del(game.game_instances[user.name])
+
+    print(f'[!] {user.name} game ended')
+    print(f"[>] {len(game.game_instances)} Game Instances are active")
+
+    await ctx.send('Thanks for playing!')
+
 @client.event
 async def on_ready():
     print('[!] Dungeons are ready')
@@ -64,24 +74,41 @@ async def on_reaction_add(reaction, user):
         except KeyError:
             print(f"[!] {user.name} tried to access foreign game")
 
+@client.command()
+async def endgame(ctx):
+    print(f"[>] {ctx.author} issued .endgame")
+    await end_game(ctx, ctx.author)
+
 async def moveup(ctx, user):
     active = game.game_instances[user.name]
     if active.move_focused_entity(0, -1):
-        await ctx.message.edit(embed=get_game_embed(user))
+        if active.get_focused_entity().health <= 0:
+            await end_game(ctx, user)
+        else:
+            await ctx.message.edit(embed=get_game_embed(user))
 
 async def movedown(ctx, user):
     active = game.game_instances[user.name]
     if active.move_focused_entity(0, 1):
-        await ctx.message.edit(embed=get_game_embed(user))
+        if active.get_focused_entity().health <= 0:
+            await end_game(ctx, user)
+        else:
+            await ctx.message.edit(embed=get_game_embed(user))
 
 async def moveleft(ctx, user):
     active = game.game_instances[user.name]
     if active.move_focused_entity(-1, 0):
-        await ctx.message.edit(embed=get_game_embed(user))
+        if active.get_focused_entity().health <= 0:
+            await end_game(ctx, user)
+        else:
+            await ctx.message.edit(embed=get_game_embed(user))
 
 async def moveright(ctx, user):
     active = game.game_instances[user.name]
     if active.move_focused_entity(1, 0):
-        await ctx.message.edit(embed=get_game_embed(user))
+        if active.get_focused_entity().health <= 0:
+            await end_game(ctx, user)
+        else:
+            await ctx.message.edit(embed=get_game_embed(user))
 
-client.run('TOKEN')
+client.run('ODI1MjAyNTgxNjI1NTAzNzU0.YF6fyg.p23MV1Bong_T9V3f7AzpaFsL_4Y')
